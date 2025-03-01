@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
+import { database, ref, push } from './firebase';
 
 const AdvancedGreeting = () => {
   const [name, setName] = useState('');
@@ -8,6 +9,7 @@ const AdvancedGreeting = () => {
   const [isSpecialName, setIsSpecialName] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [showRedirect, setShowRedirect] = useState(false);
 
   // Generate emojis based on name type
   const generateEmojis = (count) => 
@@ -29,12 +31,28 @@ const AdvancedGreeting = () => {
     setIsSpecialName(name.toLowerCase() === 'rania');
   }, [name]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsRotating(true);
+    
+    // Save to Firebase
+    try {
+      await push(ref(database, 'users'), {
+        username: name,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
+
     setTimeout(() => {
       setIsRotating(false);
       setIsSubmitted(true);
+      setTimeout(() => setShowRedirect(true), 3000);
     }, isSpecialName ? 4000 : 2000);
+  };
+
+  const handleRedirect = () => {
+    window.location.href = `https://whatthink9990.vercel.app/?name=${encodeURIComponent(name)}`;
   };
 
   return (
@@ -122,6 +140,26 @@ const AdvancedGreeting = () => {
                 Ramzan Mubarak!
               </h1>
               
+              {/* Add redirect button */}
+              {showRedirect && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-4"
+                >
+                  <p className="text-2xl text-white mb-4">What do you think about me?</p>
+                  <motion.button
+                    onClick={handleRedirect}
+                    className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Share Your Thoughts
+                  </motion.button>
+                </motion.div>
+              )}
+                
+
               {/* Special Down-to-Up Fireworks for Rania */}
               {isSpecialName && (
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -198,9 +236,7 @@ const AdvancedGreeting = () => {
           </div>
         </motion.div>
       )}
-      <h1 className="text-amber-50 relative top-40"> Made by t2hasnain</h1>
-      <h1 className="text-amber-50 relative top-40 left-2"> share with your friends❤️</h1>
-
+      <h1 className="text-amber-50 relative top-15 font-bold text-1xl"> Made by t2hansain</h1>
     </div>
   );
 };
